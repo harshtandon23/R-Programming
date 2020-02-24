@@ -1,0 +1,268 @@
+---
+title: "HTandon_project3_fall2019"
+author: "Harsh Tandon"
+output: html_document
+---
+## Introduction
+We aim to analyze the number of American citizens killed or wounded through terrorist activities, also looking into the development in time of the terrorist groups activity.\ 
+We will also be analyzing the perpetrators group the geographical region where the attacks occured, slide and dice our data based on type of target, type of attacks and type of weapons. 
+
+## About the data
+This dataset on Kaggle about [Global terrorism database](https://www.kaggle.com/START-UMD/gtd) contains data about date, time, location, number of hostages, killed, wounded, weapons used etc over 135 columns and 181691 rows. The Global Terrorism Database (GTD) is an open-source database including information on terrorist attacks around the world from 1970 through 2017. The database is maintained by researchers at the National Consortium for the Study of Terrorism and Responses to Terrorism (START), headquartered at the University of Maryland.\
+For the sake of this project, we subset the dataset based on column 'country' as 'United States'.
+This subset containing information about 'United States' consists of 135 columns and 2836 rows. 
+
+## Prepratory work
+### Install Packages & Import Libraries
+Let's begin with installing required packages and importing work related libraries.
+```{r include=FALSE}
+#install packages if not installed already
+#install.packages("leaflet")  
+#install.packages("treemap")
+library(ggplot2)  
+library(grid)
+library(leaflet)
+library(dplyr)
+library(treemap)
+```
+
+### Read Data
+Next, let's set our working directory and read the dataset into our working environment.
+```{r}
+setwd("D:/1st Qtr Study Material/R/Project 3/Project 3")  #set working directory
+data = read.csv("USTerrorismData.csv", header = TRUE)     #reading data
+nrow(data)                                                #printing number of rows
+ncol(data)                                                #printing number of columns
+head(data, 2)                                             #printing first 2 rows of data
+``` 
+
+### Cleaning Data
+Considering the large number of attributes, there ought to be some missing data. Thus, to account for empty cells, we replace empty cells with 'NA'. We see that we had (211454 - 111433) empty cells in our data.
+```{r}
+sum(is.na(data))        #Print total number of NA
+data[data == ""] = NA   #Replace empty cells with NA
+sum(is.na(data))        #Print total number of NA
+```
+
+## Visualizing All Terrorist Attacks on USA
+The interactive map shown below allows you to zoom in and out to view the exact location of the attack.\
+Also, to view details of the attack, <b>click on the red dots!</b>\
+Note: For this project, we are concerned with attacks only on USA. Therefore, there would not be any red dots for other countries. 
+```{r}
+#creating map using leaflet function
+mapUSA = leaflet() %>% 
+  addTiles('http://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+          attribution='&copy; 
+          <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>') %>%
+  setView(-95, 40, zoom = 4.2)
+
+
+#adding layers to map
+mapUSA %>% addCircles (data=data, lat= ~latitude, lng = ~longitude, 
+                       popup=paste(
+                         "<strong>Year: </strong>", data$iyear,
+                         "<br><strong>City: </strong>", data$city, 
+                         "<br><strong>Country: </strong>", data$country_txt, 
+                         "<br><strong>Attack type: </strong>", data$attacktype1_txt, 
+                         "<br><strong>Target: </strong>", data$targtype1_txt, 
+                         " | ", data$targsubtype1_txt, 
+                         " | ", data$target1, 
+                         "<br><strong>Weapon: </strong>", data$weaptype1_txt, 
+                         "<br><strong>Group: </strong>", data$gname, 
+                         "<br><strong>Motive: </strong>", data$motive, 
+                         "<br><strong>Summary: </strong>", data$summary),
+                       weight = 0.9, color="#8B1A1A", stroke = TRUE, fillOpacity = 0.6)
+```
+
+### 1A. Killings from Terrorist Attacks on USA between 1970 - 2017 by Year and State
+Looking at the statewise split, we see that there are few states where the number of killed citizens in terrorist attacks is very large. Some of these states have experienced recent massive increase, like <b>Nevada</b> and <b>Florida</b> while others have a long history, like <b>New York</b>.\ 
+We also notice a lot of people lost their lives in New York in 2001, suggesting a major terrorist incident. To hypothesize we can say this is the result of 9/11 attacks in New York in 2001. We will dig further to check if our hypothesis is correct, later in this project. 
+```{r}
+kills = data %>% filter(nkill > 0)  #subset data where nkill is greater than 0.
+#Killings yearwise
+treemap(kills, 
+        index=c("iyear"), 
+        vSize = "nkill",  
+        palette = "Reds",  
+        title="Killings in USA Terrorism by year", 
+        fontsize.title = 14 
+)
+
+#Killings statewise
+treemap(kills, 
+        index=c("provstate"), 
+        vSize = "nkill",  
+        palette = "Reds",  
+        title="Killings in USA Terrorism by state", 
+        fontsize.title = 14 
+)
+```
+
+### 1B. Killings from Terrrorist Attacks on USA between 2007 - 2017 by Year and State
+Let’s look at the killings from terror activities in the last decade. In the following treemap, the size of the areas corresponding to each year is proportional with the number of kills in that year in the terrorist activities. We can easily see that there was a massive increase in killings in terrorist activities in the years from 2015 and in the last 3 years (2015-2017) the volume was significantly higher than in the previous years.
+```{r}
+kills = data %>% filter(nkill > 0, iyear > 2007)  #subset data where nkill is greater than 0.
+
+#Killings yearwise
+treemap(kills, 
+        index=c("iyear"), 
+        vSize = "nkill",  
+        palette = "Reds",  
+        title="Killings in USA Terrorism by year in last decade", 
+        fontsize.title = 14 
+)
+
+#Killings statewise
+treemap(kills, 
+        index=c("provstate"), 
+        vSize = "nkill",  
+        palette = "Reds",  
+        title="Killings in USA Terrorism by state in last decade", 
+        fontsize.title = 14 
+)
+```
+
+### 2A. Terror Attacks on USA between 1970-2017 by Attack Type
+Let’s inspect the evolution of events in time, grouped by type of attack perpetrated.
+```{r warning=FALSE}
+#Selecting data by grouping year & attackType
+AttackType = data %>% 
+  group_by(iyear,attacktype1_txt) %>% 
+  summarise(n = length(iyear)) %>% 
+  ungroup()
+
+
+#Assigning Column Names for subset of data
+colnames(AttackType) = c("Year","Type of attack","Number of events")
+
+
+#plotting total number of incidences(events) by year based on type of attack
+ggplot(data = AttackType, aes(x = Year, y = `Number of events`, colour = `Type of attack`)) + 
+  geom_line() + 
+  geom_point() + 
+  theme_bw()
+
+
+#plotting number of incidences by attack tpye
+ggplot(data, aes(x = iyear)) +
+  labs(title =" Terrorist attacks in US between 1970-2017 by attack type", x = "Years", y = "Number of Attacks", size = 15) +
+  geom_bar(colour = "grey19", fill = "tomato3") + 
+  facet_wrap(~attacktype1_txt,scales = "free", ncol = 3) + 
+  theme(axis.text.x = element_text(hjust = 1, size = 12, angle = 45)) + 
+  theme(strip.text = element_text(size = 10, face = "bold"))
+```
+
+### 2B. Top 6 states with highest terror attack frequency
+Lets drill down to see which are the top 6 states in USA facing higest number of attacks and what type of attacks.
+Between 1970 and 2017, we see that <b>California, New York, Puerto Rico, Florida, Illinois, Washington</b> experienced the highest frequency of attacks.\
+The TreeMap below also shows frequency of these attacks grouped by states. Zoom in and out of the map to view Country Level View, State Level View or City Level View. <b>Click on the markers on the map for more information</b>. 
+```{r message=FALSE, warning=FALSE}
+#Selecting data by grouping year & attackType and state
+AttackTypeState = data %>% 
+  group_by(iyear,attacktype1_txt, provstate) %>% 
+  summarise(n = length(iyear))
+
+
+#Assigning Column Names for subset of data
+colnames(AttackTypeState) = c("Year","Type of attack","State","Number of events")
+
+
+#filtering data to get top 6 states with highest number of incidences 
+top6 = AttackTypeState %>% 
+  group_by(State) %>% 
+  summarise(n = sum(`Number of events`)) %>% 
+  arrange(desc(n)) %>%
+  top_n(6)
+
+
+#extracting State names from filtered data
+top6states = as.factor(top6$State) 
+top6states
+
+
+#filter our actual dataset to get information on incidences belonging to top6 states
+AttackTypeState = filter(AttackTypeState, `State` %in% top6states)
+
+
+#plotting total number of incidences(events) in top 6 states by year based on type of attack
+ggplot(data = AttackTypeState, aes(x = Year, y = `Number of events`, group = `Type of attack`, colour = `Type of attack`)) + 
+  geom_line() + 
+  facet_wrap(~State) + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle=45))
+
+
+#plotting map of total number of incidences(events) in states of USA.
+leaflet(data = data) %>%
+  addTiles('http://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+           attribution='&copy; 
+           <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>') %>%
+  setView(-95, 40, zoom = 4.2) %>%
+  addMarkers(lat=data$latitude, lng=data$longitude, clusterOptions = markerClusterOptions(),
+             popup= paste("<strong>Date: </strong>", data$iday,"/",data$imonth,"/", data$iyear,
+                          "<br><br><strong>Place: </strong>", data$city,"-",data$country_txt,
+                          "<br><strong>Killed: </strong>", data$nkill,
+                          "<br><strong>Wounded: </strong>", data$nwound
+             ))
+```
+
+### 3A. Attacks by Terror Groups
+The table below shows number of incidences along with number of killings, and number of wounded citizens grouped by Terror group names. We notice a clear outlier yet a very important outlier highlighting 9/11 attacks. <b>Al-Qaida</b> shows 4 incidences with over 3000 kills and over 16,000 wounded. 
+```{r}
+select(data, iyear, nkill, nwound, gname)  %>% 
+  group_by(gname) %>% 
+  summarise("#Incidences" = n(), "#Kills" = sum(nkill), "#Wounded" = sum(nwound))
+```
+
+### 3B. Attacks by Terror Groups and AttackType
+The table below shows number of incidences along with number of killings, and number of wounded citizens grouped by Terror group names. It also groups these incidences based on the type of attacks. The important outlier that we saw in the previous table shows that the type of attack was <b>Hijacking</b>. Notice how this finding confirms our hypothesis in 1A.\
+<b>It shows that New York in 2001 was attacked by Al-Qaida, who hijacked planes and crashed them, resulting in over 3000 deaths and over 16,000 wounded. </b>
+```{r}
+select(data, iyear, attacktype1_txt, nkill, nwound, gname)  %>% 
+  group_by(gname, attacktype1_txt) %>% 
+  summarise("#Incidences" = n(), "#Kills" = sum(nkill), "#Wounded" = sum(nwound))
+```
+
+### 4. Attacks by TARGET Type
+Lets change our view, and look at these attacks grouped by Target Type. We see a surprising insight that <b>Journalist & Media were the most attacked targets since 1980!</b>
+```{r warning=FALSE}
+#removing null target types
+dataClean = data[which(data$targsubtype2_txt !='.'), ] 
+
+
+#Plotting attacks by target type
+ggplot(dataClean, aes(x = iyear))+ labs(title =" Terrorist attacks on India between 1970-2015 by TARGET type", x = "Years", y = "Number of Attacks") + 
+  geom_bar(colour = "grey19", fill = "tomato3") + facet_wrap(~targtype2_txt, ncol = 4) + theme(axis.text.x = element_text(hjust = 1, angle = 45))+
+  theme(strip.text = element_text(size = 11, face = "bold"))
+
+
+#plotting yearly attacks by target type
+ggplot(data=dataClean, aes(x=iyear,fill=targtype2_txt)) + geom_bar() + ggtitle("Yearly terrorist attacks by TARGET type")+         
+    labs(x = "Years", y = "Number of Attacks")
+```
+
+### 5. Attacks by WEAPON Type
+Let's change our view again, and look at these attacks grouped by Weapon Type.\
+We see a very high peek of <b>Explosives</b> during 1970 - 1980. On further research, it was found that, in a single eighteen-month period during 1971 and 1972 the FBI counted an amazing 2,500 bombings on American soil, almost five a day. Because they were typically detonated late at night, few caused serious injury, but resulted in great turmoil. 
+```{r warning=FALSE}
+#plotting attacks by weapon type
+ggplot(data, aes(x = iyear))+ labs(title =" Terrorist attacks on USA between 1970-2015 by WEAPON type", x = "Years", y = "Number of Attacks") + 
+  geom_bar(colour = "grey19", fill = "tomato3") + 
+  facet_wrap(~weaptype1_txt, ncol = 2) + theme(axis.text.x = element_text(hjust = 1, angle = 45))+ theme(strip.text = element_text(size = 11, face = "bold"))
+
+
+#plotting yearly attacks by weapon type 
+ggplot(data=data, aes(x=iyear,fill=weaptype1_txt)) + 
+    geom_bar() + ggtitle("Yearly terrorist attacks by WEAPON type")+ 
+    labs(x = "Years", y = "Number of Attacks")
+```
+
+## Summary
+This data visualization/story telling using R is an exploratory analysis of Global Terrorism Database, focussed specially on United States of America for scaling purpose. The following points give a brief recapitulation of the findings throughout the notebook:
+
+* In 1A we saw that a lot of people lost their lives in New York in 2001, suggesting a major terrorist incident. Later in 3A and 3B we saw that a major Al-Qaida attack cost over 3000 lives of US citizens. Further drilling down the data, we noticed that this attack was rather a hijack, thus confirming our hypothesis about 9/11 attacks in 1A.
+* In section 4, we saw a rather continous form of attacks happening on Jounalists and Media. These attacks, though less in magnitude, were quite frequent throughout 4 decades 1980-2017.
+* In section 5, we unearthed a trend which synchronizes with USA's history of bombings. During 1970-1972, the FBI counted an amazing 2,500 bombings on American soil, almost five a day. \
+
+In the field of global security, Big Data analytics is aiming at pre-emption (stopping an attack at the early stage, say via communications analysis and following purchases of dangerous/suspicious materials) and prevention (interfering before violent action is carried out, say via network disruption or through identifying the person at risk).\
+The use of Big Data can help antedate future threats and allow counter-terrorism forces to more efficiently deploy the limited resources to concentrate on the grotesque and more immediate threats. However, there are still so many problems in counter terrorism which are worth researching in the future.\
