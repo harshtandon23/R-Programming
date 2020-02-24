@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1576319557672.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "37A438AC",
+    "lastKnownWriteTime" : -9223254388555439869,
+    "last_content_update" : 1576319557672,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "id" : "b2b8d44403a1471db80ab664bea2916b",
+        "name" : "nb",
+        "title" : "nb"
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "object_explorer"
+}

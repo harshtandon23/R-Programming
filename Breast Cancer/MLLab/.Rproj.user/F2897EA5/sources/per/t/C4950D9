@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1576320902809.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2308578690",
+    "id" : "C4950D9",
+    "lastKnownWriteTime" : 1576296127,
+    "last_content_update" : 1576296127,
+    "path" : "C:/Users/harsh/Desktop/ModelTraininig.R",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "31,0",
+        "scrollLine" : "4"
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

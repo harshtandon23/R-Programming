@@ -1,0 +1,35 @@
+data=read.csv('SpotifyFeatures.csv')
+
+#install.packages("randomForest")
+library(randomForest)
+levels(data$mode)
+levels(data$mode) = c(1,0)
+levels(data$mode)
+
+levels(data$key)
+levels(data$key) = c(1:12)
+levels(data$key)
+
+levels(data$time_signature)
+levels(data$time_signature) = c(1:5)
+levels(data$time_signature)
+
+#finding correlation
+numericFeatures = data[ ,5:ncol(data)]
+
+#convert to numeric
+numericFeatures$key = as.numeric(numericFeatures$key)
+numericFeatures$mode = as.numeric(numericFeatures$mode)
+numericFeatures$time_signature = as.numeric(numericFeatures$time_signature)
+
+#corrFeatures = numericFeatures[,-1]
+
+numericFeatures = numericFeatures[,-5]
+
+train <- sample(nrow(numericFeatures), 0.7*nrow(numericFeatures), replace = FALSE)
+TrainSet <- numericFeatures[train,]
+ValidSet <- numericFeatures[-train,]
+
+model2 <- randomForest(popularity ~ ., data = TrainSet, ntree = 500, mtry = 6, importance = TRUE)
+
+save(model2 , file = 'RandomForestModel.rda')
