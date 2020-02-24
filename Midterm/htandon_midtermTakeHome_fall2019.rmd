@@ -1,0 +1,182 @@
+---
+title: "R Midterm take home portion"
+author: "Harsh Tandon W1580393"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+dir()
+setwd("D:/1st Qtr Study Material/R/Midterm")  #set working directory
+#import all used libraries
+library(dplyr)
+library(ggplot2)
+library(jsonlite)
+```
+
+# Part 1
+### 1. Load titanic.csv dataset
+```{r}
+data = read.csv("D:/1st Qtr Study Material/R/Midterm/titanic.csv")
+```
+
+### 2. Get rid of columns "Name", "Ticket", "PassengerId", "Cabin"
+```{r}
+colToRemove = c(which(colnames(data)=="Name"),
+                which(colnames(data)=="Ticket"),
+                which(colnames(data)=="PassengerId"),
+                which(colnames(data)=="Cabin"))
+
+data = data[-colToRemove]
+```
+
+### 3. Replace the ‘Sex column with a binary column for whether the passenger is 'Male'
+```{r}
+levels(data$Sex) = c(0,1)
+levels(data$Sex) 
+
+colIndexOfSex = which(colnames(data)=="Sex") 
+names(data)[colIndexOfSex] = "isMale"
+data
+```
+
+### 4. Show how many NA’s are in each column 
+```{r}
+colSums(is.na(data))
+```
+
+### 5. Which Column has the most NA’s? How many does it have? 
+We see from Q4 that "Age" has most number of NA's. It has 177 NA values 
+
+### 6. Create a bar chart to show NA counts by column
+```{r}
+NAcount = (colSums(is.na(data)))
+barplot(NAcount, xlab = "Column Name", ylab = "Count of NA", ylim = c(0,200), main = "NA counts by columns")
+```
+
+### 7. Plot the distribution of ages for each gender. 
+#### Is the average (mean) age of Males higher? 
+From the density plot, we see that Average age of Males is higher than Females. 
+```{r}
+mu <- data %>% 
+  group_by(isMale) %>%
+  summarise(grp_mean = mean(Age, na.rm = TRUE))
+mu
+ggplot(data = data, aes(x = Age)) + 
+  geom_density(aes(fill = isMale), alpha = 0.4) + 
+  geom_vline(aes(xintercept = grp_mean, color = isMale),
+             data = mu, linetype = "dashed",size = 1)
+```
+
+#### Is the median higher? 
+We see that Median value of Age for Males is higher than Females.
+```{r}
+median <- data %>% 
+  group_by(isMale) %>%
+  summarise(grp_median = median(Age, na.rm = TRUE))
+median
+ggplot(data = data, aes(x = Age)) + 
+  geom_density(aes(fill = isMale), alpha = 0.4) + 
+  geom_vline(aes(xintercept = grp_median, color = isMale),
+             data = median, linetype = "dashed",size = 1)
+```
+
+### 8. Which port of origin (embarked column) had the highest average fare? Show/plot your results.
+```{r}
+avg_Fare <- data %>% 
+  group_by(Embarked) %>%
+  summarise(grp_mean = mean(Fare, na.rm = TRUE))
+avg_Fare
+
+barplot(avg_Fare$grp_mean, names.arg = avg_Fare$Embarked, main = "Average Fare by Port", ylab = "Average Fare", xlab = "Port")
+```
+
+### 9. Is there a statistically significant difference in average fares between the genders? 
+No, the difference between the average fares of Males and Females is statistically significant. 
+Average for Males: 25.52
+Average for Females: 44.48
+The difference is 18.96!
+```{r}
+avg_Fare <- data %>% 
+  group_by(isMale) %>%
+  summarise(grp_mean = mean(Fare, na.rm = TRUE))
+avg_Fare
+
+barplot(avg_Fare$grp_mean, names.arg = avg_Fare$isMale, main = "Average Fare by Gender", ylab = "Average Fare", xlab = "isMale", ylim = c(0,50))
+
+```
+
+# Part 2
+### 1. Load the bitly data from data.gov as a data frame. 
+```{r}
+data2 = stream_in(url("https://raw.githubusercontent.com/denisvrdoljak/MSIS2506_Fall2019/master/TakeHomeMidterm/bitly_usagov_example.txt"))
+```
+
+### 2. How many records are there? 
+```{r}
+print(nrow(data2))
+```
+
+### 3. In the City column (‘cy’), how many are NA? 
+```{r}
+sum(is.na(data2$cy))
+```
+
+### 4. How many countries are present in this data? 
+#### Which country (‘c’ column) has the most records? How many does it have? 
+From the results we see that, US has the most records. It has 2305 records!
+```{r}
+data2$c = as.factor(data2$c)
+levels(data2$c)
+summary(data2$c)
+```
+
+### 5. How many records are from Russia? 
+There are 13 records from Russia.
+```{r}
+count(data2,  data2$c == "RU")
+```
+
+### 6. How many records do NOT list USA?
+There are 614 records that do not list USA.
+```{r}
+count(data2, data2$c != "US")
+```
+
+### 7. How many records have 'America' in the timezone, but Country not in US? 
+There are 143 records having "America" in timezone, but country not equal to US.
+```{r}
+hasAmerica = dplyr::filter(data2, grepl("America", tz))
+count(hasAmerica, c != "US")
+```
+
+### 8. How many records point to cia.gov? 
+```{r}
+cia = dplyr::filter(data2, grepl("cia.gov", u))
+length(cia)
+```
+
+### 9. Fill empty records with “UNKNOWN” and NA’s with “MISSING”. Create a new csv. 
+```{r}
+sum(is.na(data2))
+data2[is.na(data2)] = "MISSING"
+data2[data2 == ""] = "UNKNOWN"
+sum(is.na(data2))
+data3 = apply(data2,2,as.character)
+
+write.table(data3, file = "NewCsv.csv", sep = ",", col.names = TRUE, row.names = FALSE)
+```
+
+### 10.  Show the top 10 timezones (‘tz’ column) in a bar chart
+```{r}
+data2$tz = as.factor(data2$tz)
+timezones = summary(data2$tz)
+timezones = sort(timezones, decreasing = TRUE)
+top10 = timezones[1:10]
+
+par(mar=c(10,4,4,4))
+barplot(top10, las = 2, main = "Top 10 Timezones", ylab = "Count", col = 1:6)
+legend("topright", cex = 0.75, ncol = 2, legend = names(top10), fill = 1:6)
+title(xlab="Timezones" ,mgp=c(9,1,0))
+```
