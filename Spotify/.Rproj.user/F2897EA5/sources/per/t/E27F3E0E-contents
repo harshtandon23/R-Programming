@@ -1,0 +1,98 @@
+#-------------------------------------------------
+#  title: Spotify Popularity Predictor and Explorer
+#  authors: Adarsh Salapaka, Harsh Tandon, Wenping (Fiona) Du, Xiyu Wu, Xiaoyu Guo 
+#--------------------------------------------------
+  
+  
+  #Lets install packages if not already present, and load the following libraries
+  #install.packages("stargazer")
+  #install.packages("DT")
+  #install.packages("shinyWidgets")
+  #install.packages("ggplot2")
+  
+library(ggplot2)
+library(shiny)
+library(corrplot)
+library(tidyverse)
+library(stargazer)
+library(caret)
+library(dplyr)
+library(gridExtra)
+library(shinyWidgets)
+library(DT)
+
+
+#set working directory
+setwd("D:/1st Qtr Study Material/R/Final/HTandon/Spotify/")
+
+#read Dataset
+data = read.csv("SpotifyFeatures.csv")
+
+
+#data cleaning ---------------------------------------------------------------------------------
+#timeSignature is in date format, which needs to be in x/4 format
+data$time_signature
+levels(data$time_signature)
+levels(data$time_signature) = c("0/4", "1/4", "3/4", "4/4", "5/4")
+data$time_signature
+
+#column name genre reads differently in mac and windows
+#the following code changes column Genre to "genre" if it was read incorrectly
+if(colnames(data)[1] != "genre") {
+  colnames(data)[1] = "genre"
+}
+
+#convert attributes like mode, key and timeSignature for machine learning
+levels(data$mode)
+levels(data$mode) = c(1,0)
+levels(data$mode)
+
+levels(data$key)
+levels(data$key) = c(1:12)
+levels(data$key)
+
+levels(data$time_signature)
+levels(data$time_signature) = c(1:5)
+levels(data$time_signature)
+
+#subset only numeric features from the data to run our model
+numericFeatures = data[ ,5:ncol(data)]
+
+#convert to numeric
+numericFeatures$key = as.numeric(numericFeatures$key)
+numericFeatures$mode = as.numeric(numericFeatures$mode)
+numericFeatures$time_signature = as.numeric(numericFeatures$time_signature)
+
+
+numericFeatures = numericFeatures[,-5]
+
+#-------------------------------------------------------------------------------------------------
+
+#load our trained machine learning model for prediction
+load("LinearRegressionModel.rda")
+
+
+#run the app
+runApp("Popularity_PredictorExplorer")
+
+#----------------------------------------------------------------------------------------------------
+#Run our prediction model. The code is commented out because model was already run and saved as .rda file.
+#train = sample(nrow(numericFeatures), 0.7*nrow(numericFeatures), replace = FALSE)
+
+#TrainSet = numericFeatures[train,]
+#ValidSet = numericFeatures[-train,]
+
+#LR = train(popularity ~ .,  data = numericFeatures, 
+#            method = 'lm',
+#            preProc = c("center", "scale"))
+
+#save(LR , file = 'LinearRegressionModel.rda')
+
+
+#Code for Random Forest Model. 
+#
+
+#RF = randomForest(popularity ~ ., data = TrainSet, ntree = 500, mtry = 6, importance = TRUE)
+
+#save(RF , file = 'RandomForestModel.rda')
+#-----------------------------------------------------------------------------------------------------

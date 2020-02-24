@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1576388678207.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1002772882",
+    "id" : "C17C7CDE",
+    "lastKnownWriteTime" : 1576353749,
+    "last_content_update" : 1576353749,
+    "path" : "D:/1st Qtr Study Material/R/Final/HTandon/Spotify/Popularity_PredictorExplorer/ui.R",
+    "project_path" : "Popularity_PredictorExplorer/ui.R",
+    "properties" : {
+        "cursorPosition" : "14,41",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
