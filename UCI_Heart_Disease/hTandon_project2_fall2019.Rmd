@@ -1,0 +1,269 @@
+---
+title: "MSIS 2506 R Project 2 Fall 2019"
+author: "Wenping (Fiona) Du, Harsh Tandon, Xiyu Wu, Xiaoyu Guo"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  html_notebook: default
+Dataset: UCI Heart Disease Dataset
+---
+# Introduction
+The objective of this project is to do exploratory data analysis using R on Heart Disease Dataset found on UCI Machine Learning Repository and this dataset is divided into four parts containing data from four countries. The following document will take the readers through the introduction of dataset, preprocessing steps and exploratory visualization to find interesting facts!
+
+### Dataset
+The UCI Machine Learning Repository has four datasets from four countries namely, Cleveland, Hungary, Switzerland, VA Long Beach. Each of these datasets has 14 attributes containing patient's information. Each country has the following number of entries:
+
+ - Cleveland: 303 rows
+ - Hungary: 294 rows
+ - Switzerland: 123 rows
+ - Long Beach VA: 200 rows
+
+We combine these datasets to get a total of 920 observations to analyze.
+
+### Attributes 
+
+- age: age of patient in years
+- sex: gender of patient (0 = Male; 1 = Female)
+- cp: type of chest pain
+  - 1 = typical angina
+  - 2 = atypical angina
+  - 3 = non-anginal pain
+  - 4 = asymptomatic 
+- trestbps: resting blood pressure of patient in mm Hg 
+- chol: cholestrol level of patient in mg/dl
+- fbs: is fasting blood sugar level > 120 mg/dl
+  - 1 = True
+  - 0 = False
+- restecg: resting electrocardiograph results
+  - 0 = Normal
+  - 1 = ST-T wave abnormality
+  - 2 = Definite hypertrophy
+- thalach: maximum heart rate achieved in beats per minute
+- exang: is angina induced by exercise
+  - 1 = True
+  - 0 = False
+- oldpeak: ST depression induced by exercise relative to rest
+- slope: slope of the peak exercise ST segment
+  - 1 = positive slope (upward slope)
+  - 2 = flat slope
+  - 3 = negative slope (downward slope)
+- ca: number of major vessels colored by flouroscopy(0-3)
+- thal: status of heart as shown by Thallium test
+  - 3 = normal
+  - 6 = fixed defect
+  - 7 = reversible defect
+- num: target variable showing % probablility a person will suffer from heart disease
+  - 0 = No heart disease
+  - 1 = 25% probability
+  - 2 = 50% probability
+  - 3 = 75% probability
+  - 4 = 100% probability
+- country: shows which country does the data belong to
+  - 1 = Cleveland
+  - 2 = Hungary
+  - 3 = Switzerland
+  - 4 = VA
+  
+For the purpose of simplification, we create another variable "target" having two levels
+
++ 0 = Patient has/will have no heart disease
++ 1 = Patient has/will have heart disease
+
+# Data Preprocessing
+
+### Importing libraries
+Import libaries to work with ggplot.
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- library(tidyverse)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- library(ggplot2)
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(naniar)
+library(gridExtra)
+options(warn = -1)
+```
+
+### Data Cleaning and Transformation
+Read the csv file "heartDiseaseDataSet.csv" in your working environment.
+```{r}
+data = as.data.frame(read.csv("D:/1st Qtr Study Material/R/Project 2/heartDiseaseDataSet.csv", header = TRUE, sep = ","))
+summary(data)
+```
+
+We notice that a lot of entries in our data has missing values, containing NA in place of numeric data. 
+For our data to be complete, we want to replace all NAs with the mean value of their respective columns. The code snippets below extract each column's numeric values and replaces NA with these mean values. 
+```{r}
+data$trestbps
+BP = subset(data$trestbps, !is.na(data$trestbps)) #extracting only numeric values from column "trestbps"
+MeanNum = mean(BP) #taking mean of numeric data
+data$trestbps[which(is.na(data$trestbps))] = round(MeanNum, digits = 0) #replacing NA with mean value
+data$trestbps
+```
+```{r}
+HeartRate = subset(data$thalach, !is.na(data$thalach)) #extracting only numeric values from column "thalach"
+MeanNum = mean(HeartRate) #taking mean of numeric data
+data$thalach[which(is.na(data$thalach))] = round(MeanNum, digits = 0) #replacing NA with mean value
+
+Chol = subset(data$chol, !is.na(data$chol)) #extracting only numeric values from column "chol"
+MeanNum = mean(Chol) #taking mean of numeric data
+data$chol[which(is.na(data$chol))] = round(MeanNum, digits = 0) #replacing NA with mean value
+
+Exang = subset(data$exang, !is.na(data$exang)) #extracting only numeric values from column "exang"
+MeanNum = mean(Exang) #taking mean of numeric data
+data$exang[which(is.na(data$exang))] = round(MeanNum, digits = 0) #replacing NA with mean value
+
+Thal = subset(data$thal, !is.na(data$thal)) #extracting only numeric values from column "thal"
+MeanNum = mean(Thal) #taking mean of numeric data
+data$thal[which(is.na(data$thal))] = 6 #replacing NA with mean value
+```
+
+# Data Exploration
+We will explore the data considering some feature individually and some in combination with each other to get a better sense of how these features affect our target variable. 
+
+### Univariate Visualization
+#### Age
+The dataset includes patients from age 28 to 77 years. The graph below shows a normal distribution of age, with around 60% population between the age of 45 and 65.   
+```{r}
+x = data$age
+h = hist(x, breaks = 50, col="#a0a8a8", xlab = "Age", main = "Distribution of Age")
+xfit = seq(min(x), max(x), length = 50)
+yfit = dnorm(xfit, mean = mean(x), sd = sd(x))
+yfit = yfit*diff(h$mids[1:2])*length(x)
+lines(xfit, yfit, col = "red", lwd = 2)
+```
+
+While the overall graph is normally distributed, if we categorize the polulation by country, we notice that Hungary's dataset has a very short right tail, which means it appears that for this dataset we do not have enough data from relatively old people from Hungary.
+```{r}
+ggplot(data = data)  + geom_bar(mapping = aes(x = age, fill = country ))
+```
+
+But how is age related to our target variable? And more specifically, what does each country tell us about the relationship between age and target variable? Let's look at the plots given below. 
+We see that there is an upward trend appearing that as patient's age increases, it is more likely for them to get a heart related disease!
+```{r}
+g1 = ggplot(data = data)  + geom_bar(mapping = aes(x = age, fill = factor(num)), position = "fill") 
+g2 = ggplot(data = data)  + geom_bar(mapping = aes(x = age, fill = factor(target)), position = "fill") 
+grid.arrange(g1,g2, ncol=2)
+```
+
+If we look at the plots given below, we see that out of all the patients in Switzerland, surprisingly a majority of them suffer from a heart related disease. Based on this, we can hypothesize that either we do not have enough random samples, or because there is a large probability for Switzerland people to get heart disease. If we want to confirm our hypothesis and understand why the plot like this, we need more research and data. 
+```{r}
+Cleveland = subset(data, data$country == "cleveland")
+Hungary = subset(data, data$country == "hungary")
+Switzerland = subset(data, data$country == "switzerland")
+VA = subset(data, data$country == "va")
+a = ggplot(data = Cleveland)  + geom_bar(mapping = aes(x = age, fill = factor(target))) + labs(subtitle = "Cleveland")
+b = ggplot(data = Hungary)  + geom_bar(mapping = aes(x = age, fill = factor(target))) + labs(subtitle = "Hungary")
+c = ggplot(data = Switzerland)  + geom_bar(mapping = aes(x = age, fill = factor(target))) + labs(subtitle = "Switzerland")
+d = ggplot(data = VA)  + geom_bar(mapping = aes(x = age, fill = factor(target))) + labs(subtitle = "VA Long Beach")
+grid.arrange(a,b,c,d, nrow=2,ncol=2)
+```
+
+#### Trestbps
+The histogram of resting blood pressure is right skewed showing only a few patients suffered from high blood pressure. On analyzing the relationship between trestbps and target variable, we see that people who were suffering from a heart disease tended to have higher blood pressure than people who did not have a heart related condition. It appears that heart disease is positively correlated to the blood pressure. However, We cannot say that having a heart disease is contingent on high blood pressure.
+```{r}
+yes = subset(data, data$target == 1)
+no = subset(data, data$target == 0)
+x = ggplot(data = yes)  + geom_bar(mapping = aes(x = trestbps)) + labs(subtitle = "Yes - Has Heart Disease") + coord_cartesian(xlim = c(75,200))
+y = ggplot(data = no)  + geom_bar(mapping = aes(x = trestbps)) + labs(subtitle = "No - Does not have Heart Disease") + coord_cartesian(xlim = c(75,200))
+grid.arrange(x,y, nrow=2)
+
+```
+
+#### Chol
+The histogram of Cholestrol is right skewed showing only a few patients had high level of cholestrol. On analyzing the relationship between chol and target variable, we see that healthy patients had lower levels of cholestrol than patients with heart disease.
+```{r}
+g1 = ggplot(data = yes, aes(x = chol))  + 
+  labs(subtitle = "Yes - Has Heart Disease") + 
+  geom_histogram(aes(y = ..density..), breaks = seq(90,500, by=10)) +
+  geom_density() +
+  xlim(90,500)
+g2 = ggplot(data = no, aes(x = chol), na.rm = TRUE )  + 
+  labs(subtitle = "No - Does not have Heart Disease") + 
+  geom_histogram(aes(y = ..density..), breaks = seq(90,500, by=10)) +
+  geom_density() + 
+  xlim(90,500)
+grid.arrange(g1,g2, nrow=2)
+```
+
+#### Sex
+In our dataset, around 67% patients are male. The relation between sex and target variable shows that men are more likely to suffer from heart diseases than women.
+```{r}
+g1 = ggplot(data, aes(x = factor(sex))) +
+  geom_bar() +
+  scale_x_discrete(name = "Gender", labels = c("0"="Female", "1"="Male"))
+g2 = ggplot(data, aes(x = factor(sex), fill = factor(target))) +
+  geom_bar() +
+  scale_x_discrete(name = "Gender", labels = c("0"="Female", "1"="Male"))
+
+a = ggplot(data = Cleveland)  + geom_bar(mapping = aes(x = sex, fill = factor(target))) + labs(subtitle = "Cleveland")
+b = ggplot(data = Hungary)  + geom_bar(mapping = aes(x = sex, fill = factor(target))) + labs(subtitle = "Hungary")
+c = ggplot(data = Switzerland)  + geom_bar(mapping = aes(x = sex, fill = factor(target))) + labs(subtitle = "Switzerland")
+d = ggplot(data = VA)  + geom_bar(mapping = aes(x = sex, fill = factor(target))) + labs(subtitle = "VA Long Beach")
+grid.arrange(g1, g2, a,b,c,d, nrow=3,ncol=2)
+```
+
+#### Exang
+We see a clear trend that having a exercise induced angina (chestpain) is a lot more prominent in patients with heart disease than healthy patients. This shows that exang might be a deciding factor for having a heart disease.
+```{r}
+g1 = ggplot(no, aes(x = factor(exang))) +
+  geom_bar(fill = "steelblue") +
+  labs(subtitle = "Patients without a heart disease")
+g2 = ggplot(yes, aes(x = factor(exang))) +
+  geom_bar(fill = "lightsalmon") +
+  labs(subtitle = "Patients with a heart disease")
+grid.arrange(g1,g2, ncol=2)
+  
+```
+
+#### Thal
+The two bar charts drawn for target feature are not the same for two levels of target. Healthy patients mostly showed a normal heart status while patients with a heart disease showed mostly a reversible defect condition.
+```{r}
+g1 = ggplot(no, aes(x = factor(thal))) +
+  geom_bar(fill = "steelblue") +
+  labs(subtitle = "Patients without a heart disease")
+g2 = ggplot(yes, aes(x = factor(thal))) +
+  geom_bar(fill = "lightsalmon") +
+  labs(subtitle = "Patients with a heart disease")
+grid.arrange(g1,g2, ncol=2)
+```
+
+### Multivariate Visualization
+#### Resting Blood Pressure vs Age
+We are comparing the resting blood pressure of people as they age. We see a trend that resting blood pressure increases for all the patients. However, we notice that patients with a heart disease have a steeper slope, suggesting blood pressure levels are higher and it tends to increase much faster with age in heart patients. This may be a good predictive indicator for people with increasing blood pressure levels.
+```{r}
+g1 = ggplot(data = no, aes(x = age, y = trestbps))  + 
+  geom_point(aes(col=country)) + 
+  geom_smooth(method = "lm") + 
+  coord_cartesian(xlim = c(30,75), ylim = c(75,200)) +
+  labs(subtitle = "Patients without a heart disease")
+g2 = ggplot(data = yes, aes(x = age, y = trestbps))  + 
+  geom_point(aes(col=country)) + 
+  geom_smooth(method = "lm") + 
+  coord_cartesian(xlim = c(30,75), ylim = c(75,200)) +
+  labs(subtitle = "Patients with a heart disease")
+grid.arrange(g1,g2, ncol=2)
+```
+
+#### Maximum Heart rate achieved vs Age
+Here, we are comparing the maximum heart rate achieved by patients as they age. We all know for a fact, that a child has a faster pulse than an old person. The graph plotted from the data confirms this medical notion, suggesting that the maximum heart rate that can be acheived by a person decreases with his/her age.
+```{r}
+ggplot(data = data, aes(x = age, y = thalach))  + 
+  geom_point(aes(col=country)) + 
+  geom_smooth(method = "lm") + 
+  coord_cartesian(xlim = c(30,75), ylim = c(75,200))
+```
+
+### Summary
+We found out that the dataset had missing values which could lead to problems with a machine learning model. As the adage goes, 70% time of a data analyst is gone in cleaning the data. Important features like trestbps (resting blood pressure), thalach(maximum heart rate), thal(Thallium test results), exang(Exercise induced angina), chol(Cholestrol Levels) had NA instead of values, which we estimated to regenerate those missing values. Then, through data exploration and visualization, we found that:
+
+- Exang(Exercise induced angina) is probably the most important feature in our dataset, which can be considered extremely important in creating a machine learning model for predictive analysis. 
+- We also verified a number of medical facts such as 
+  - Increasing age shoots up a patient's chances of getting a heart attack. 
+  - Males have higher changes of getting a heart attack than Females.
+  - Healthy patients have lower levels of cholestrol, thus reduced risk of heart attacks.
+  - Patients who are likely to have a heart disease have higher resting blood pressure.     
+- We also hypothesized that, out of all the patients in Switzerland, most of them suffered from a heart related disease.
+- Lastly, we saw that distribution of age in Hungary was left skewed, suggesting bias in data. 
+The last two points about Switzerland and Hungary show that there might be some bias in the data due to insufficient data. To arrive at a firm conclusion about these hypotheses, we need more data for research. Well, that could be a future scope of this project!
